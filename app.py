@@ -1,5 +1,5 @@
-from dotenv import load_dotenv
-load_dotenv()
+# from dotenv import load_dotenv
+# load_dotenv()
 import streamlit as st
 import os
 from PIL import Image
@@ -11,6 +11,7 @@ import io  # New import
 from pdf2image import convert_from_bytes  # New import
 
 warnings.filterwarnings('ignore')
+genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
 # --- Configuration ---
 
@@ -18,7 +19,12 @@ warnings.filterwarnings('ignore')
 GOOGLE_SHEET_ID = "1Vzb3o4MyexMxK7AWp8ChTW08dBAWwQr-_QXs8tSY8zQ"
 
 # !! 2. RENAME YOUR SERVICE ACCOUNT FILE
-SERVICE_ACCOUNT_FILE = "service_account.json"
+# SERVICE_ACCOUNT_FILE = "service_account.json"
+# We will load the service account from the secret string
+SERVICE_ACCOUNT_JSON_STR = st.secrets["SERVICE_ACCOUNT_JSON_STR"]
+# Convert the string back into a dictionary
+SERVICE_ACCOUNT_INFO = json.loads(SERVICE_ACCOUNT_JSON_STR)
+
 
 # Configure Gemini API
 try:
@@ -84,7 +90,8 @@ def append_to_google_sheet(data_dict, image_name):
     Appends the extracted data as a new row in Google Sheets.
     """
     try:
-        gc = gspread.service_account(filename=SERVICE_ACCOUNT_FILE)
+        # gc = gspread.service_account(filename=SERVICE_ACCOUNT_FILE)
+        gc = gspread.service_account_from_dict(SERVICE_ACCOUNT_INFO)
         sh = gc.open_by_key(GOOGLE_SHEET_ID)
         worksheet = sh.get_worksheet(0)
         
@@ -451,3 +458,4 @@ if submit and uploaded_file is not None:
 #                 st.error(f"An error occurred: {e}")
 #                 st.info("Please ensure your `service_account.json` file is present and you have shared your Google Sheet with the service account email.")          
                 
+
