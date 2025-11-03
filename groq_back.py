@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv() # Loads .env file for local development
+
 import streamlit as st
 import os
 from PIL import Image
@@ -8,23 +9,30 @@ import json
 import warnings
 import io
 from pdf2image import convert_from_bytes
-import groq      
-import base64    
+import groq      # New import
+import base64    # New import
 
 warnings.filterwarnings('ignore')
 
 # --- Configuration ---
 
+# !! 1. PASTE YOUR GOOGLE SHEET ID HERE
 GOOGLE_SHEET_ID = "1Vzb3o4MyexMxK7AWp8ChTW08dBAWwQr-_QXs8tSY8zQ"
-SERVICE_ACCOUNT_FILE = "service_account.json"
+# This will be loaded from secrets when deployed
+SERVICE_ACCOUNT_FILE = "service_account.json" 
 
 # Configure Groq API
 try:
-    groq_client = groq.Groq(api_key=os.getenv("GROQ_API_KEY"))
-    if not os.getenv("GROQ_API_KEY"):
-        raise ValueError("GROQ_API_KEY not set")
+    # For local dev, it reads from .env
+    # For Streamlit deployment, it will read from st.secrets
+    groq_api_key = os.getenv("GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY")
+    if not groq_api_key:
+        raise ValueError("GROQ_API_KEY not found. Set it in .env or Streamlit secrets.")
+    
+    groq_client = groq.Groq(api_key=groq_api_key)
+
 except Exception as e:
-    st.error(f"Could not configure Groq. Is GROQ_API_KEY set? Error: {e}")
+    st.error(f"Could not configure Groq. Error: {e}")
 
 # --- AI Functions ---
 
@@ -80,7 +88,7 @@ def process_pdf_to_images(uploaded_file):
         images = convert_from_bytes(pdf_bytes)
     except Exception as e:
         st.error(f"PDF Conversion Error: {e}")
-        st.info("This app may require the 'Poppler' library on your system.")
+        st.info("This app may require the 'Poppler' library on your system (see packages.txt for deployment).")
         return []
 
     image_data_list = []
@@ -100,14 +108,21 @@ def process_pdf_to_images(uploaded_file):
         
     return image_data_list
 
-# --- Google Sheets Function (No changes) ---
+# --- Google Sheets Function (Updated for Streamlit Secrets) ---
 
 def append_to_google_sheet(data_dict, image_name):
     """
     Appends the extracted data as a new row in Google Sheets.
     """
     try:
-        gc = gspread.service_account(filename=SERVICE_ACCOUNT_FILE)
+        # Check if running in Streamlit cloud and use secrets
+        if "SERVICE_ACCOUNT_JSON_STR" in st.secrets:
+            SERVICE_ACCOUNT_INFO = json.loads(st.secrets["SERVICE_ACCOUNT_JSON_STR"])
+            gc = gspread.service_account_from_dict(SERVICE_ACCOUNT_INFO)
+        else:
+            # Fallback to local file (for local development)
+            gc = gspread.service_account(filename=SERVICE_ACCOUNT_FILE)
+
         sh = gc.open_by_key(GOOGLE_SHEET_ID)
         worksheet = sh.get_worksheet(0)
         
@@ -152,8 +167,8 @@ def append_to_google_sheet(data_dict, image_name):
 
 # --- Streamlit App ---
 
-st.set_page_config(page_title="Groq Llama 4 Analyzer") # <-- CHANGED
-st.header("Groq Llama 4 PhD Exam Script Analyzer 🧾") # <-- CHANGED
+st.set_page_config(page_title="Groq Llama 4 Analyzer")
+st.header("Groq Llama 4 PhD Exam Script Analyzer 🧾") 
 
 # Prompt is unchanged, it's perfect for JSON mode
 input_prompt = """
@@ -182,8 +197,8 @@ submit = st.button("Analyze PDF and Append to Sheet")
 
 # --- Main Submit Logic ---
 if submit and uploaded_file is not None:
-    if GOOGLE_SHEET_ID == "YOUR_SHEET_ID_HERE":
-        st.error("Please paste your GOOGLE_SHEET_ID into the app.py file first.")
+    if GOOGLE_SHEET_ID == "YOUR_SHEET_ID_HERE" or GOOGLE_SHEET_ID == "1Vzb3o4MyexMxK7AWp8ChTW08dBAWwQr-_QXs8tSY8zQ":
+        st.error("Please paste your *own* GOOGLE_SHEET_ID into the app.py file first.")
     else:
         try:
             st.info(f"Processing {uploaded_file.name}... This may take a moment.")
@@ -206,7 +221,7 @@ if submit and uploaded_file is not None:
                     with st.spinner(progress_text):
                         st.image(image_data[0]["data"], caption=f"Analyzing: {image_name}")
 
-                        # 3. Get response from Groq <-- CHANGED
+                        # 3. Get response from Groq
                         response_text = get_groq_response(input_prompt, image_data, user_input)
                         
                         if not response_text:
@@ -234,4 +249,4 @@ if submit and uploaded_file is not None:
             st.text(response_text)
         except Exception as e:
             st.error(f"An error occurred: {e}")
-            st.info("Please ensure your `service_account.json` file is present and you have shared your Google Sheet with the service account email.")
+            st.info("Please ensure your `service_account.json` file (for local) or secrets (for deployment) are correct and you have shared your Google Sheet with the service account email.")
