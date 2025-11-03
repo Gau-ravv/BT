@@ -197,51 +197,51 @@ submit = st.button("Analyze PDF and Append to Sheet")
 
 # --- Main Submit Logic ---
 if submit and uploaded_file is not None:
-    # if GOOGLE_SHEET_ID == "YOUR_SHEET_ID_HERE" or GOOGLE_SHEET_ID == "1Vzb3o4MyexMxK7AWp8ChTW08dBAWwQr-_QXs8tSY8zQ":
-    #     st.error("Please paste your *own* GOOGLE_SHEET_ID into the app.py file first.")
-    # else:
-    try:
-        st.info(f"Processing {uploaded_file.name}... This may take a moment.")
-        pages_to_process = process_pdf_to_images(uploaded_file)
-        
-        if not pages_to_process:
-            st.error("No pages found in PDF or PDF processing failed. See error above.")
-        else:
-            st.success(f"Found {len(pages_to_process)} pages to analyze.")
+    if GOOGLE_SHEET_ID == "YOUR_SHEET_ID_HERE" or GOOGLE_SHEET_ID == "1Vzb3o4MyexMxK7AWp8ChTW08dBAWwQr-_QXs8tSY8zQ1":
+        st.error("Please paste your *own* GOOGLE_SHEET_ID into the app.py file first.")
+    else:
+        try:
+            st.info(f"Processing {uploaded_file.name}... This may take a moment.")
+            pages_to_process = process_pdf_to_images(uploaded_file)
             
-            total_pages = len(pages_to_process)
-            progress_bar = st.progress(0, text="Starting analysis...")
-            
-            for i, (image_name, image_data) in enumerate(pages_to_process):
+            if not pages_to_process:
+                st.error("No pages found in PDF or PDF processing failed. See error above.")
+            else:
+                st.success(f"Found {len(pages_to_process)} pages to analyze.")
                 
-                page_num = i + 1
-                progress_text = f"Analyzing page {page_num} of {total_pages} ({image_name})..."
-                progress_bar.progress(page_num / total_pages, text=progress_text)
+                total_pages = len(pages_to_process)
+                progress_bar = st.progress(0, text="Starting analysis...")
                 
-                with st.spinner(progress_text):
-                    st.image(image_data[0]["data"], caption=f"Analyzing: {image_name}")
-
-                    # 3. Get response from Groq
-                    response_text = get_groq_response(input_prompt, image_data, user_input)
+                for i, (image_name, image_data) in enumerate(pages_to_process):
                     
-                    if not response_text:
-                        st.error(f"No response from Groq for page {page_num}. Skipping.")
-                        continue
-
-                    # 4. Parse JSON (No cleaning needed due to JSON mode)
-                    data_dict = json.loads(response_text)
+                    page_num = i + 1
+                    progress_text = f"Analyzing page {page_num} of {total_pages} ({image_name})..."
+                    progress_bar.progress(page_num / total_pages, text=progress_text)
                     
-                    # 5. Append this page's data to Google Sheet
-                    with st.spinner(f"Appending data for page {page_num} to sheet..."):
-                        success = append_to_google_sheet(data_dict, image_name)
-                        if success:
-                            st.success(f"Appended data for {image_name} to sheet.")
-                        else:
-                            st.error(f"Failed to append data for {image_name}.")
-            
-            progress_bar.empty()
-            st.balloons()
-            st.header("Analysis Complete!")
+                    with st.spinner(progress_text):
+                        st.image(image_data[0]["data"], caption=f"Analyzing: {image_name}")
+    
+                        # 3. Get response from Groq
+                        response_text = get_groq_response(input_prompt, image_data, user_input)
+                        
+                        if not response_text:
+                            st.error(f"No response from Groq for page {page_num}. Skipping.")
+                            continue
+    
+                        # 4. Parse JSON (No cleaning needed due to JSON mode)
+                        data_dict = json.loads(response_text)
+                        
+                        # 5. Append this page's data to Google Sheet
+                        with st.spinner(f"Appending data for page {page_num} to sheet..."):
+                            success = append_to_google_sheet(data_dict, image_name)
+                            if success:
+                                st.success(f"Appended data for {image_name} to sheet.")
+                            else:
+                                st.error(f"Failed to append data for {image_name}.")
+                
+                progress_bar.empty()
+                st.balloons()
+                st.header("Analysis Complete!")
 
         except json.JSONDecodeError as e:
             st.error(f"Error: Groq's response for page {page_num} was not valid JSON. Stopping.")
@@ -250,5 +250,6 @@ if submit and uploaded_file is not None:
         except Exception as e:
             st.error(f"An error occurred: {e}")
             st.info("Please ensure your `service_account.json` file (for local) or secrets (for deployment) are correct and you have shared your Google Sheet with the service account email.")
+
 
 
