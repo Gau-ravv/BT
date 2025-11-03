@@ -5,6 +5,6 @@ pdf2image
 Pillow
 PyPDF2
 groq
-base64
 python-dotenv
+
 
