@@ -1,0 +1,14 @@
+streamlit
+google-generativeai
+python-dotenv
+PyPDF2
+
+accelerate
+opencv-python
+
+pdf2image
+groq
+pillow
+gspread
+base64
+anthropic
