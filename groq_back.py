@@ -1,5 +1,5 @@
-from dotenv import load_dotenv
-load_dotenv() # Loads .env file for local development
+# from dotenv import load_dotenv
+# load_dotenv() # Loads .env file for local development
 
 import streamlit as st
 import os
@@ -250,3 +250,4 @@ if submit and uploaded_file is not None:
         except Exception as e:
             st.error(f"An error occurred: {e}")
             st.info("Please ensure your `service_account.json` file (for local) or secrets (for deployment) are correct and you have shared your Google Sheet with the service account email.")
+
