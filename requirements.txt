@@ -3,3 +3,8 @@ google-generativeai
 gspread
 pdf2image
 Pillow
+PyPDF2
+groq
+base64
+
+
